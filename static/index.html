@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>sshdetect — SIEM Console</title>
+<title>Detection tool — SIEM Console</title>
 <style>
 :root{--bg:#0b0e14;--panel:#11151f;--panel2:#171c29;--text:#dbe1ee;--muted:#7c8699;--border:#232a3a;
   --accent:#3fd0c9;--accent-ink:#04201e;--crit:#ff4d6d;--high:#ff9f43;--med:#ffd23f;--low:#5b8cff;--ok:#3ecf8e;}
@@ -18,6 +18,7 @@ button{font:inherit;border:1px solid var(--border);background:var(--panel2);colo
 button:hover{border-color:#3a4258;}
 button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:700;}
 button.primary:disabled{opacity:.4;cursor:not-allowed;}
+button.danger{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 45%,var(--border));}
 button.chip{padding:4px 11px;font-size:.75rem;border-radius:100px;}
 button.chip.active{background:var(--accent);color:var(--accent-ink);border-color:transparent;}
 input[type=file]{display:none;}
@@ -60,14 +61,19 @@ th:hover{color:var(--text);}
 .cfg-field input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);color:var(--text);}
 .srcbox{margin-bottom:12px;}
 textarea{width:100%;min-height:90px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font:11.5px ui-monospace,Menlo,Consolas,monospace;}
+.casepanel{display:none;margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--panel2);}
+.casepanel.open{display:grid;grid-template-columns:minmax(140px,1fr) 2fr auto;gap:10px;align-items:end;}
+.casepanel label{display:block;font-size:.7rem;color:var(--muted);margin-bottom:4px;}
+.casepanel textarea{min-height:58px;}
+@media(max-width:620px){.casepanel.open{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 <div class="topbar">
   <h1>🛡️ sshdetect <span class="pill" id="statusPill">idle</span></h1>
   <div class="spacer"></div>
-  <button onclick="document.getElementById('file').click()">Upload log</button>
-  <input type="file" id="file" accept=".log,.txt">
+  <button onclick="document.getElementById('file').click()">Upload logs</button>
+  <input type="file" id="file" accept=".log,.txt,.xml" multiple>
   <button onclick="loadSample()">Load sample</button>
   <button onclick="toggleDrawer()">⚙ Thresholds</button>
   <button class="primary" id="runBtn" onclick="runDetection()">▶ Run</button>
@@ -103,26 +109,42 @@ textarea{width:100%;min-height:90px;background:var(--panel2);color:var(--text);b
   <div class="card">
     <h2>Alerts</h2>
     <div class="controls">
-      <input class="search" id="search" placeholder="Search alerts (IP, user, message)…" oninput="renderTable()">
+      <input class="search" id="search" placeholder="Search alerts (IP, user, message)…" oninput="loadAlerts()">
       <div class="row" id="sevChips">
         <button class="chip active" data-sev="all" onclick="toggleSev(this)">All</button>
         <button class="chip" data-sev="critical" onclick="toggleSev(this)">Critical</button>
         <button class="chip" data-sev="high" onclick="toggleSev(this)">High</button>
         <button class="chip" data-sev="medium" onclick="toggleSev(this)">Medium</button>
       </div>
-      <select id="ruleFilter" onchange="renderTable()"><option value="all">All rules</option></select>
-      <button onclick="downloadAlerts()" id="dlBtn" disabled>⭳ Export JSON</button>
+      <select id="ruleFilter" onchange="renderTable(); updateRuleDeleteButton()"><option value="all">All rules</option></select>
+      <button class="danger" id="deleteRuleBtn" onclick="deleteRuleAlerts()" disabled>Delete type alerts</button>
+      <select id="statusFilter" onchange="loadAlerts()"><option value="">All cases</option><option value="open">Open</option><option value="investigating">Investigating</option><option value="resolved">Resolved</option></select>
+      <button onclick="downloadAlerts()" id="dlBtn" disabled>Export JSONL</button>
+      <button onclick="downloadReport()">Audit report</button>
+      <button class="danger" onclick="clearStorage()">Clear all storage</button>
+    </div>
+    <div class="casepanel" id="casePanel">
+      <div><label for="caseStatus">Case status</label><select id="caseStatus"><option>open</option><option>investigating</option><option>resolved</option></select></div>
+      <div><label for="caseNotes">Analyst notes</label><textarea id="caseNotes"></textarea></div>
+      <button class="primary" onclick="saveCase()">Save case</button>
     </div>
     <div class="tablewrap">
       <table>
         <thead><tr>
           <th onclick="sortBy('ts')">Time</th><th onclick="sortBy('severity')">Severity</th>
           <th onclick="sortBy('rule')">Rule</th><th onclick="sortBy('entity')">Entity</th>
-          <th>Message</th><th>Evidence</th>
+          <th>Message</th><th>Evidence</th><th>Case</th>
         </tr></thead>
-        <tbody id="alertsBody"><tr><td colspan="6" class="empty">Load a log and click Run.</td></tr></tbody>
+        <tbody id="alertsBody"><tr><td colspan="7" class="empty">Load a log and click Run.</td></tr></tbody>
       </table>
     </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h2>Normalized event history</h2>
+    <div class="controls"><input class="search" id="eventSearch" placeholder="Search host, user, IP, command…" oninput="loadEvents()"></div>
+    <div class="tablewrap"><table><thead><tr><th>Time</th><th>Source</th><th>Host</th><th>Kind</th><th>User</th><th>IP</th><th>Command / evidence</th></tr></thead>
+      <tbody id="eventsBody"><tr><td colspan="7" class="empty">No stored events.</td></tr></tbody></table></div>
   </div>
 </div>
 
@@ -130,6 +152,7 @@ textarea{width:100%;min-height:90px;background:var(--panel2);color:var(--text);b
 const MITRE = {brute_force:"T1110.001", success_after_failures:"T1078", user_enumeration:"T1110.003",
   off_hours_login:"T1078", suspicious_command:"T1105"};
 const SEV_COLOR = {critical:"var(--crit)", high:"var(--high)", medium:"var(--med)", low:"var(--low)"};
+function escapeHtml(value){ return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
 
 const CFG_DEFS = [
   ["bf_threshold","Brute force: failures",5], ["bf_window","Brute force: window (s)",60],
@@ -147,14 +170,20 @@ grid.insertAdjacentHTML('beforeend', `<div class="cfg-field"><label for="offhour
 
 function toggleDrawer(){ document.getElementById('drawer').classList.toggle('open'); }
 
+let selectedFiles = [], focusedCase = null, displayedEventCount = 0;
 document.getElementById('file').addEventListener('change', e=>{
-  const f = e.target.files[0]; if(!f) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{ document.getElementById('pasteArea').value = reader.result; document.getElementById('drawer').classList.add('open'); };
-  reader.readAsText(f);
+  selectedFiles = Array.from(e.target.files || []);
+  const area = document.getElementById('pasteArea');
+  if(selectedFiles.length === 1) selectedFiles[0].text().then(text=>{ area.value=text; });
+  else if(selectedFiles.length > 1) area.value='';
+  area.placeholder = selectedFiles.length > 1 ? `${selectedFiles.length} log files selected` : 'Paste syslog-style auth.log lines, or use Upload / Load sample above…';
+  document.getElementById('drawer').classList.add('open');
 });
+document.getElementById('pasteArea').addEventListener('input', ()=>{ selectedFiles=[]; });
 
 async function loadSample(){
+  selectedFiles=[];
+  document.getElementById('file').value='';
   const res = await fetch('/sample');
   document.getElementById('pasteArea').value = await res.text();
   document.getElementById('offhours').value = 'backup';
@@ -162,31 +191,59 @@ async function loadSample(){
 }
 
 let allAlerts = [], activeSev = 'all', sortKey = 'ts', sortDir = 1;
+loadAlerts(); loadEvents(); refreshDashboard();
 
 async function runDetection(){
   const log = document.getElementById('pasteArea').value;
-  if(!log.trim()){ alert('Load or paste a log first (click ⚙ Thresholds).'); return; }
+  if(!log.trim() && selectedFiles.length===0){ alert('Load or paste a log first (click ⚙ Thresholds).'); return; }
   const cfg = {}; CFG_DEFS.forEach(([id])=>cfg[id]=Number(document.getElementById(id).value));
   const runBtn = document.getElementById('runBtn'), pill = document.getElementById('statusPill');
   runBtn.disabled = true; pill.textContent = 'running…';
   try{
+    const sources = selectedFiles.length ? await Promise.all(selectedFiles.map(async file=>({name:file.name,content:await file.text()}))) : [{name:log.trim().startsWith('<Event')?'windows-export.xml':'auth.log',content:log}];
     const res = await fetch('/analyze', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({log, cfg, offhours_ignore_users: document.getElementById('offhours').value})});
+      body: JSON.stringify({sources, cfg, offhours_ignore_users: document.getElementById('offhours').value})});
     if(!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    allAlerts = data.alerts.map(a=>({...a, tsDate:new Date(a.ts)}));
     pill.textContent = `${data.event_count} events`;
-    buildRuleFilter(); renderKPIs(data.event_count); renderCharts(); renderTable();
-    document.getElementById('dlBtn').disabled = allAlerts.length===0;
+    displayedEventCount += data.event_count;
+    await loadAlerts(); await loadEvents(); await refreshDashboard();
     document.getElementById('drawer').classList.remove('open');
   } catch(err){ alert('Server error — is app.py running? ' + err.message); }
   finally{ runBtn.disabled = false; }
 }
 
+async function loadAlerts(){
+  const query=document.getElementById('search').value;
+  const status=document.getElementById('statusFilter').value;
+  const response=await fetch(`/alerts?q=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}`);
+  if(!response.ok)return;
+  allAlerts=(await response.json()).map(a=>({...a,tsDate:new Date(a.ts)}));
+  buildRuleFilter(); renderKPIs(displayedEventCount); renderCharts(); renderTable();
+  document.getElementById('dlBtn').disabled=allAlerts.length===0;
+}
+
+async function loadEvents(){
+  const query=document.getElementById('eventSearch').value;
+  const response=await fetch(`/events?q=${encodeURIComponent(query)}`);
+  if(!response.ok)return;
+  const events=await response.json();
+  document.getElementById('eventsBody').innerHTML=events.length ? events.map(e=>`<tr><td>${escapeHtml(e.ts)}</td><td>${escapeHtml(e.source)}</td><td>${escapeHtml(e.host)}</td><td>${escapeHtml(e.kind)}</td><td>${escapeHtml(e.user)}</td><td><code>${escapeHtml(e.ip)}</code></td><td><span class="evidence">${escapeHtml(e.cmd||e.raw)}</span></td></tr>`).join('') : '<tr><td colspan="7" class="empty">No matching events.</td></tr>';
+}
+
+async function refreshDashboard(){
+  const response=await fetch('/report');
+  if(!response.ok)return;
+  displayedEventCount=(await response.json()).events;
+  renderKPIs(displayedEventCount);
+}
+
 function buildRuleFilter(){
   const sel = document.getElementById('ruleFilter');
+  const selected = sel.value;
   const rules = [...new Set(allAlerts.map(a=>a.rule))].sort();
-  sel.innerHTML = '<option value="all">All rules</option>' + rules.map(r=>`<option value="${r}">${r}</option>`).join('');
+  sel.innerHTML = '<option value="all">All rules</option>' + rules.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
+  sel.value = rules.includes(selected) ? selected : 'all';
 }
 
 function renderKPIs(eventCount){
@@ -231,7 +288,7 @@ function renderCharts(){
   const counts = new Map();
   allAlerts.forEach(a=>counts.set(a.entity,(counts.get(a.entity)||0)+1));
   const top = [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);
-  document.getElementById('topList').innerHTML = top.map(([e,n])=>`<div class="toprow"><span><code>${e}</code></span><span class="cnt">${n} alert(s)</span></div>`).join('') || '<div class="empty">No alerts</div>';
+  document.getElementById('topList').innerHTML = top.map(([e,n])=>`<div class="toprow"><span><code>${escapeHtml(e)}</code></span><span class="cnt">${n} alert(s)</span></div>`).join('') || '<div class="empty">No alerts</div>';
 }
 
 function toggleSev(btn){
@@ -254,15 +311,67 @@ function renderTable(){
     return x<y ? -sortDir : x>y ? sortDir : 0;
   });
   const body = document.getElementById('alertsBody');
-  body.innerHTML = rows.length===0 ? `<tr><td colspan="6" class="empty">No matching alerts.</td></tr>` :
+  body.innerHTML = rows.length===0 ? `<tr><td colspan="7" class="empty">No matching alerts.</td></tr>` :
     rows.map(a=>`<tr>
-      <td>${a.ts.replace('T',' ').slice(0,19)}</td>
-      <td><span class="sev sev-${a.severity}">${a.severity}</span></td>
-      <td>${a.rule}<span class="mitre">${MITRE[a.rule]||''}</span></td>
-      <td><code>${a.entity}</code></td>
-      <td>${a.message}</td>
-      <td><span class="evidence">${a.evidence.replace(/</g,'&lt;')}</span></td>
+      <td>${escapeHtml(a.ts.replace('T',' ').slice(0,19))}</td>
+      <td><span class="sev sev-${escapeHtml(a.severity)}">${escapeHtml(a.severity)}</span></td>
+      <td>${escapeHtml(a.rule)}<span class="mitre">${escapeHtml(MITRE[a.rule]||'')}</span></td>
+      <td><code>${escapeHtml(a.entity)}</code></td>
+      <td>${escapeHtml(a.message)}</td>
+      <td><span class="evidence">${escapeHtml(a.evidence)}</span></td>
+      <td><button onclick="openCase(${a.id})">Review</button> <button class="danger" onclick="deleteAlert(${a.id})">Delete</button><br><small>${escapeHtml(a.status)}</small></td>
     </tr>`).join('');
+}
+
+function openCase(id){
+  focusedCase=allAlerts.find(a=>a.id===id);
+  if(!focusedCase)return;
+  document.getElementById('caseStatus').value=focusedCase.status;
+  document.getElementById('caseNotes').value=focusedCase.notes||'';
+  document.getElementById('casePanel').classList.add('open');
+  document.getElementById('casePanel').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+async function saveCase(){
+  if(!focusedCase)return;
+  const status=document.getElementById('caseStatus').value;
+  const notes=document.getElementById('caseNotes').value;
+  const response=await fetch(`/alerts/${focusedCase.id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status,notes})});
+  if(!response.ok){alert('Could not save case: '+await response.text());return;}
+  document.getElementById('casePanel').classList.remove('open');
+  await loadAlerts();
+}
+
+function updateRuleDeleteButton(){
+  const rule=document.getElementById('ruleFilter').value;
+  document.getElementById('deleteRuleBtn').disabled=rule==='all' || !allAlerts.some(alert=>alert.rule===rule);
+}
+
+async function deleteAlert(id){
+  const alert=allAlerts.find(item=>item.id===id);
+  if(!alert || !confirm(`Delete this ${alert.rule} alert? Its normalized events will remain stored.`))return;
+  const response=await fetch(`/alerts/${id}`,{method:'DELETE'});
+  if(!response.ok){alert('Could not delete alert: '+await response.text());return;}
+  if(focusedCase?.id===id){focusedCase=null;document.getElementById('casePanel').classList.remove('open');}
+  await loadAlerts(); await refreshDashboard();
+}
+
+async function deleteRuleAlerts(){
+  const rule=document.getElementById('ruleFilter').value;
+  if(rule==='all' || !confirm(`Delete all stored ${rule} alerts? The detector will continue generating this alert type.`))return;
+  const response=await fetch(`/alerts/type/${encodeURIComponent(rule)}`,{method:'DELETE'});
+  if(!response.ok){alert('Could not delete alert type: '+await response.text());return;}
+  await loadAlerts(); await refreshDashboard();
+}
+
+async function clearStorage(){
+  if(!confirm('Delete all stored events and alerts? This cannot be undone.'))return;
+  const response=await fetch('/storage',{method:'DELETE'});
+  if(!response.ok){alert('Could not clear storage: '+await response.text());return;}
+  focusedCase=null;
+  document.getElementById('casePanel').classList.remove('open');
+  document.getElementById('statusPill').textContent='storage cleared';
+  await loadAlerts(); await loadEvents(); await refreshDashboard();
 }
 
 function downloadAlerts(){
@@ -270,6 +379,13 @@ function downloadAlerts(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href=url; a.download='alerts.jsonl'; a.click();
   URL.revokeObjectURL(url);
+}
+
+async function downloadReport(){
+  const response=await fetch('/report?days=30');
+  const blob=new Blob([JSON.stringify(await response.json(),null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob), link=document.createElement('a');
+  link.href=url; link.download='sshdetect-audit-report.json'; link.click(); URL.revokeObjectURL(url);
 }
 </script>
 </body>

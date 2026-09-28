@@ -1,7 +1,7 @@
 # sshdetect: a small SSH/auth-log detection engine
 
-Blue Team final project. Reads a Linux `auth.log`, normalizes it, runs 5 detection rules, and prints/writes alerts.
-Pure Python 3.9+, **no dependencies**, so it runs anywhere and you can explain every line in your presentation.
+Blue Team final project. Reads Linux auth logs, normalizes them, runs explainable detection rules, and prints/writes alerts.
+The CLI uses Python 3.9+ and the standard library; the optional web console uses Flask.
 
 ## Why SSH/auth logs?
 Auth logs are the best place to learn detection: the attack patterns (brute force, spraying, valid-account abuse) are
@@ -11,10 +11,10 @@ rule maps cleanly to a MITRE ATT&CK technique.
 ## Layout
 ```
 ssh-detector/
-  sshdetect.py          # parser + 5 rules + CLI  (the tool)
+  sshdetect.py          # Linux/Windows parsers + 6 rules + CLI
   gen_sample_log.py     # builds sample/auth.log + sample/labels.json (fixed seed)
   evaluate.py           # precision / recall / F1 against labels
-  tests/test_sshdetect.py   # 17 unit tests (stdlib unittest)
+  tests/                   # parser, rule, storage, and web API tests
   sample/               # auth.log, labels.json, alerts.jsonl, alerts_no_allowlist.jsonl
   Dockerfile
 ```
@@ -27,14 +27,29 @@ python sshdetect.py sample/auth.log --year 2026 \
 python evaluate.py sample/alerts.jsonl sample/labels.json  # metrics
 python -m unittest discover -s tests -t .                  # tests
 
+# local investigation console
+python app.py                                                # http://127.0.0.1:5000
+
 # on a real box
 sudo python sshdetect.py /var/log/auth.log --quiet --out alerts.jsonl --webhook https://hooks.example/alert
 tail -n 5000 /var/log/auth.log | python sshdetect.py -     # stdin works too
 ```
 All thresholds are CLI flags (`--bf-threshold`, `--bf-window`, `--hours-start`, ...). Run `--help`.
 
+## Local web console
+The Flask console accepts Linux syslog auth logs and Windows Security Event XML (IDs 4624, 4625, and 4688).
+Select one or more `.log`, `.txt`, or `.xml` files, or paste a single log stream. Events share the `Event` format,
+are stored in `sshdetect.sqlite3`, and can be searched from the event-history table. Set `SSHDETECT_DB` to use a
+different SQLite file.
+
+Alerts are retained as analyst cases with `open`, `investigating`, and `resolved` states and notes. The console
+also exports a 30-day JSON audit summary with event counts and alert totals by severity, rule, and case state.
+The `attack_chain` correlation links a successful SSH login after repeated failures to a suspicious command by the
+same account on the same host within 15 minutes. It is a teaching prototype, not a production SIEM or a certified
+compliance reporting system. Windows XML support covers exported event XML, not live collection or EVTX files.
+
 ## Data model
-Every line becomes an `Event(ts, host, kind, user, ip, cmd, raw)` where `kind` is `failed`, `accepted` or `sudo`.
+Every supported record becomes an `Event(ts, host, kind, user, ip, cmd, raw, source)` where `kind` is `failed`, `accepted` or `sudo`.
 Rules only ever see Events, so adding another log source (nginx, Windows) means writing a new parser, not new rules.
 
 Alerts are JSON Lines: `ts, rule, severity, entity, message, host, evidence` (the raw log line that fired it).
@@ -48,8 +63,10 @@ Alerts are JSON Lines: `ts, rule, severity, entity, message, host, evidence` (th
 | 3 | `user_enumeration` | one IP tries ≥4 distinct usernames within 120 s | Password spraying / username enumeration (admin, oracle, postgres...) | T1110.003 | medium |
 | 4 | `off_hours_login` | successful login outside 07:00–20:00 (service accounts allowlisted) | Attackers use stolen creds when nobody's watching | T1078 | medium |
 | 5 | `suspicious_command` | sudo command matches a bad pattern: download-and-execute, `/etc/shadow`, reverse shell, new user, `chmod +s`, log deletion | Post-exploitation: tooling, credential theft, persistence, cleanup | T1105, T1003.008, T1136.001, T1070.002 | high |
+| 6 | `attack_chain` | after a qualifying failed-login burst and success, same host/account runs a suspicious command within 15 minutes | Correlated credential attack followed by post-exploitation | T1110 → T1078 → T1105 | critical |
 
 Rule 2 is the most valuable one. Rule 1 alone tells you "someone knocked"; rule 2 tells you "someone got in".
+Rule 6 connects that login to the first suspicious command seen for the account.
 Alerts are de-duplicated with a 300 s cooldown per (rule, entity) so a 10,000-attempt attack gives 1 alert, not 10,000.
 
 ## Test data and results
@@ -62,12 +79,12 @@ Alerts are de-duplicated with a 300 s cooldown per (rule, entity) so a 10,000-at
 | B | slow spray from 203.0.113.77: 1 attempt every 20 s, 6 different usernames |
 | C | 192.0.2.99: 12 failures on `alice` → success at 03:41 → `cat /etc/shadow`, `curl … \| sh`, `useradd`, `rm /var/log/auth.log` |
 
-`labels.json` lists the 6 (rule, entity) alerts a correct tool should raise. Result of the refinement loop:
+`labels.json` lists the 7 (rule, entity) alerts a correct tool should raise, including the correlated attack chain. Result of the refinement loop:
 
 | Run | TP | FP | FN | Precision | Recall | F1 |
 |-----|----|----|----|-----------|--------|----|
-| v1, no allowlist | 6 | 1 | 0 | 0.86 | 1.00 | 0.92 |
-| v2, `--offhours-ignore-users backup` | 6 | 0 | 0 | 1.00 | 1.00 | 1.00 |
+| v1, no allowlist | 7 | 1 | 0 | 0.88 | 1.00 | 0.93 |
+| v2, `--offhours-ignore-users backup` | 7 | 0 | 0 | 1.00 | 1.00 | 1.00 |
 
 **False positive found in v1:** the nightly `backup` service account logs in at 02:00 and tripped `off_hours_login`.
 Fix: per-account allowlist. **Threshold tuning:** bob's 4 failures + success is deliberately just under the

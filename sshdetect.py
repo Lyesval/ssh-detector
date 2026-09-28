@@ -20,9 +20,10 @@ import json
 import re
 import sys
 import urllib.request
+import xml.etree.ElementTree as ET
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Iterable, Iterator, Optional
 
 # --------------------------------------------------------------------------- #
@@ -53,6 +54,7 @@ class Event:
     ip: str = ""
     cmd: str = ""
     raw: str = ""
+    source: str = "linux"
 
 
 def parse_line(line: str, year: int) -> Optional[Event]:
@@ -77,6 +79,53 @@ def parse_line(line: str, year: int) -> Optional[Event]:
         if (s := SUDO_RE.match(msg)):
             return Event(kind="sudo", user=s["user"], cmd=s["cmd"].strip(), **base)
     return None
+
+
+def parse_windows_xml(xml_text: str) -> list[Event]:
+    """Normalize Windows Security events 4624, 4625, and 4688."""
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError:
+        return []
+
+    def child_text(parent, name):
+        for child in parent.iter():
+            if child.tag.rsplit("}", 1)[-1] == name:
+                return child.text or ""
+        return ""
+
+    records = [node for node in root.iter() if node.tag.rsplit("}", 1)[-1] == "Event"]
+    events = []
+    for record in records:
+        event_id = child_text(record, "EventID")
+        kind = {"4624": "accepted", "4625": "failed", "4688": "sudo"}.get(event_id)
+        if not kind:
+            continue
+
+        timestamp = ""
+        for node in record.iter():
+            if node.tag.rsplit("}", 1)[-1] == "TimeCreated":
+                timestamp = node.attrib.get("SystemTime", node.text or "")
+                break
+        try:
+            ts = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            if ts.tzinfo is not None:
+                ts = ts.astimezone(timezone.utc).replace(tzinfo=None)
+        except ValueError:
+            continue
+
+        data = {}
+        for node in record.iter():
+            if node.tag.rsplit("}", 1)[-1] == "Data":
+                data[node.attrib.get("Name", "")] = node.text or ""
+
+        user = data.get("TargetUserName") or data.get("SubjectUserName", "")
+        ip = data.get("IpAddress", "")
+        command = data.get("CommandLine") or data.get("NewProcessName", "")
+        host = child_text(record, "Computer")
+        events.append(Event(ts=ts, host=host, kind=kind, user=user, ip=ip,
+                            cmd=command, raw=ET.tostring(record, encoding="unicode"), source="windows"))
+    return events
 
 
 # --------------------------------------------------------------------------- #
@@ -129,6 +178,7 @@ class Detector:
         self._fails = defaultdict(deque)      # ip -> deque[timestamp] of failures
         self._users = defaultdict(deque)      # ip -> deque[(timestamp, username)] of failures
         self._last_alert = {}                 # (rule, key) -> timestamp, for cooldown
+        self._compromised_sessions = {}       # (host, user) -> (timestamp, source IP)
 
     def _emit(self, rule, severity, ev, entity, message, key=None):
         k = (rule, key or entity)
@@ -171,6 +221,7 @@ class Detector:
             if n >= c.sf_threshold:
                 out += self._emit("success_after_failures", "critical", ev, ev.ip,
                                   f"login for '{ev.user}' from {ev.ip} succeeded after {n} failures in {c.sf_lookback}s")
+                self._compromised_sessions[(ev.host, ev.user)] = (ev.ts, ev.ip)
 
             # Rule 4: off-hours login
             if (ev.ts.hour < c.hours_start or ev.ts.hour >= c.hours_end) and ev.user not in c.offhours_ignore_users:
@@ -185,6 +236,13 @@ class Detector:
                     out += self._emit("suspicious_command", "high", ev, ev.user,
                                       f"user '{ev.user}' ran a command matching '{name}': {ev.cmd}",
                                       key=f"{ev.user}|{name}")
+                    session = self._compromised_sessions.get((ev.host, ev.user))
+                    if session and 0 <= (ev.ts - session[0]).total_seconds() <= 900:
+                        out += self._emit(
+                            "attack_chain", "critical", ev, session[1],
+                            f"'{ev.user}' logged in after repeated failures and ran a suspicious command within 900s",
+                            key=f"{session[1]}|{ev.user}")
+                    self._compromised_sessions.pop((ev.host, ev.user), None)
         return out
 
 

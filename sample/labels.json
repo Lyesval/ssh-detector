@@ -1,26 +1,9 @@
 [
-  {
-    "rule": "brute_force",
-    "entity": "198.51.100.23"
-  },
-  {
-    "rule": "brute_force",
-    "entity": "192.0.2.99"
-  },
-  {
-    "rule": "user_enumeration",
-    "entity": "203.0.113.77"
-  },
-  {
-    "rule": "success_after_failures",
-    "entity": "192.0.2.99"
-  },
-  {
-    "rule": "off_hours_login",
-    "entity": "192.0.2.99"
-  },
-  {
-    "rule": "suspicious_command",
-    "entity": "alice"
-  }
+  {"rule": "brute_force", "entity": "198.51.100.23"},
+  {"rule": "brute_force", "entity": "192.0.2.99"},
+  {"rule": "user_enumeration", "entity": "203.0.113.77"},
+  {"rule": "success_after_failures", "entity": "192.0.2.99"},
+  {"rule": "off_hours_login", "entity": "192.0.2.99"},
+  {"rule": "suspicious_command", "entity": "alice"},
+  {"rule": "attack_chain", "entity": "192.0.2.99"}
 ]

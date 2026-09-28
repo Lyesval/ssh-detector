@@ -90,6 +90,7 @@ labels = [
     {"rule": "success_after_failures", "entity": C},
     {"rule": "off_hours_login", "entity": C},
     {"rule": "suspicious_command", "entity": "alice"},
+    {"rule": "attack_chain", "entity": C},
 ]
 with open("sample/labels.json", "w") as f:
     json.dump(labels, f, indent=2)

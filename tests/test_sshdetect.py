@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 
-from sshdetect import Config, Detector, parse_line
+from sshdetect import Config, Detector, parse_line, parse_windows_xml
 
 BASE = datetime(2026, 9, 14, 10, 0, 0)
 
@@ -45,6 +45,29 @@ class TestParser(unittest.TestCase):
         self.assertIsNone(parse_line("not a log line", 2026))
         self.assertIsNone(parse_line("Sep 14 10:00:00 h cron[1]: job done", 2026))
 
+    def test_windows_security_event_normalized(self):
+        xml = """<Event><System><Provider Name="Microsoft-Windows-Security-Auditing" />
+          <EventID>4625</EventID><TimeCreated SystemTime="2026-09-14T10:00:00Z" />
+          <Computer>win01</Computer></System><EventData>
+          <Data Name="TargetUserName">alice</Data><Data Name="IpAddress">1.2.3.4</Data>
+          </EventData></Event>"""
+        [event] = parse_windows_xml(xml)
+        self.assertEqual((event.source, event.kind, event.user, event.ip, event.host),
+                         ("windows", "failed", "alice", "1.2.3.4", "win01"))
+
+    def test_invalid_windows_xml_ignored(self):
+        self.assertEqual(parse_windows_xml("<Event>"), [])
+
+        def test_windows_xml_batch_normalizes_each_record(self):
+                xml = """<Events>
+                    <Event><System><EventID>4625</EventID><TimeCreated SystemTime="2026-09-14T10:00:00Z" />
+                    <Computer>win01</Computer></System><EventData><Data Name="TargetUserName">alice</Data></EventData></Event>
+                    <Event><System><EventID>4624</EventID><TimeCreated SystemTime="2026-09-14T10:00:01Z" />
+                    <Computer>win01</Computer></System><EventData><Data Name="TargetUserName">alice</Data></EventData></Event>
+                    </Events>"""
+                events = parse_windows_xml(xml)
+                self.assertEqual([event.kind for event in events], ["failed", "accepted"])
+
 
 class TestBruteForce(unittest.TestCase):
     def test_fires_at_threshold(self):
@@ -75,6 +98,12 @@ class TestSuccessAfterFailures(unittest.TestCase):
     def test_typos_do_not_fire(self):
         lines = [fail_line(BASE), fail_line(BASE + timedelta(seconds=5)), ok_line(BASE + timedelta(seconds=10))]
         self.assertEqual(feed(lines), [])
+
+    def test_suspicious_command_completes_attack_chain(self):
+        lines = [fail_line(BASE + timedelta(seconds=i), user="alice") for i in range(6)]
+        lines += [ok_line(BASE + timedelta(seconds=30), user="alice"),
+                  sudo_line(BASE + timedelta(seconds=40), "/usr/bin/cat /etc/shadow", user="alice")]
+        self.assertIn("attack_chain", {alert.rule for alert in feed(lines)})
 
 
 class TestEnumeration(unittest.TestCase):
