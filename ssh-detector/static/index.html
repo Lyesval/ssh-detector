@@ -3,77 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>sshdetect — GUI (local, powered by the real sshdetect.py)</title>
+<title>sshdetect — SIEM Console</title>
 <style>
-:root{--bg:#f6f7fb;--panel:#fff;--text:#181c25;--muted:#5c6472;--border:#e3e6ec;--accent:#2f6fed;--accent-ink:#fff;
-  --sev-critical:#c0233a;--sev-high:#d9642f;--sev-medium:#b8860b;--chip-bg:#eef1f7;}
-@media (prefers-color-scheme: dark){:root{--bg:#12141a;--panel:#1a1d25;--text:#eef0f4;--muted:#9aa2b1;--border:#2a2e38;--accent:#5b8cff;--accent-ink:#0b0d12;--chip-bg:#232733;}}
+:root{--bg:#0b0e14;--panel:#11151f;--panel2:#171c29;--text:#dbe1ee;--muted:#7c8699;--border:#232a3a;
+  --accent:#3fd0c9;--accent-ink:#04201e;--crit:#ff4d6d;--high:#ff9f43;--med:#ffd23f;--low:#5b8cff;--ok:#3ecf8e;}
 *{box-sizing:border-box;}
-body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
-.wrap{max-width:980px;margin:0 auto;padding:28px 20px 60px;}
-h1{font-size:1.4rem;margin:0 0 4px;}
-.sub{color:var(--muted);font-size:.9rem;margin-bottom:20px;}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:18px;}
-.panel h2{font-size:.9rem;margin:0 0 12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-button{font:inherit;border:1px solid var(--border);background:var(--chip-bg);color:var(--text);padding:9px 16px;border-radius:9px;cursor:pointer;}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:600;}
-button:disabled{opacity:.5;cursor:not-allowed;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;}
+.topbar{display:flex;align-items:center;gap:14px;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5;flex-wrap:wrap;}
+.topbar h1{font-size:1.05rem;margin:0;display:flex;align-items:center;gap:8px;font-weight:700;}
+.pill{font-size:.68rem;background:var(--panel2);border:1px solid var(--border);color:var(--muted);padding:2px 9px;border-radius:100px;letter-spacing:.03em;}
+.spacer{flex:1;}
+button{font:inherit;border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:7px 14px;border-radius:7px;cursor:pointer;}
+button:hover{border-color:#3a4258;}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:700;}
+button.primary:disabled{opacity:.4;cursor:not-allowed;}
+button.chip{padding:4px 11px;font-size:.75rem;border-radius:100px;}
+button.chip.active{background:var(--accent);color:var(--accent-ink);border-color:transparent;}
 input[type=file]{display:none;}
-textarea{width:100%;min-height:110px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:10px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;}
-.cfg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:8px;}
-.cfg-field label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:4px;}
-.cfg-field input{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px;}
-.stat{background:var(--chip-bg);border-radius:10px;padding:10px 12px;}
-.stat .n{font-size:1.4rem;font-weight:700;}
-.stat .l{font-size:.75rem;color:var(--muted);text-transform:uppercase;}
-table{width:100%;border-collapse:collapse;font-size:.85rem;}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
-th{color:var(--muted);font-size:.72rem;text-transform:uppercase;}
-.tablewrap{overflow:auto;max-height:480px;border:1px solid var(--border);border-radius:10px;}
-.sev{padding:2px 9px;border-radius:100px;font-size:.7rem;font-weight:700;color:#fff;text-transform:uppercase;}
-.sev-critical{background:var(--sev-critical);} .sev-high{background:var(--sev-high);} .sev-medium{background:var(--sev-medium);}
-.evidence{font:11px ui-monospace,Menlo,Consolas,monospace;color:var(--muted);word-break:break-all;}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 20px 60px;}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.kpi .n{font-size:1.55rem;font-weight:800;line-height:1;}
+.kpi .l{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:5px;}
+.kpi.crit .n{color:var(--crit);} .kpi.high .n{color:var(--high);} .kpi.med .n{color:var(--med);}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:16px;}
+@media(max-width:820px){.grid2{grid-template-columns:1fr;}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.card h2{font-size:.75rem;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.bars{display:flex;align-items:flex-end;gap:3px;height:110px;}
+.bar{flex:1;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;position:relative;}
+.bar:hover::after{content:attr(data-tip);position:absolute;bottom:105%;left:50%;transform:translateX(-50%);background:#000;color:#fff;font-size:.65rem;padding:3px 6px;border-radius:5px;white-space:nowrap;}
+.donutwrap{display:flex;align-items:center;gap:18px;}
+.legend{display:flex;flex-direction:column;gap:7px;font-size:.8rem;}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;}
+.toprow{display:flex;justify-content:space-between;font-size:.82rem;padding:5px 0;border-bottom:1px solid var(--border);}
+.toprow:last-child{border:none;}
+.toprow .cnt{color:var(--muted);}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.search{flex:1;min-width:180px;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font:inherit;}
+select{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font:inherit;}
+table{width:100%;border-collapse:collapse;font-size:.82rem;}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+th{color:var(--muted);font-size:.68rem;text-transform:uppercase;cursor:pointer;user-select:none;}
+th:hover{color:var(--text);}
+.tablewrap{overflow:auto;max-height:460px;border:1px solid var(--border);border-radius:10px;}
+.sev{padding:2px 9px;border-radius:100px;font-size:.66rem;font-weight:800;color:#0b0e14;text-transform:uppercase;}
+.sev-critical{background:var(--crit);} .sev-high{background:var(--high);} .sev-medium{background:var(--med);} .sev-low{background:var(--low);}
+.mitre{font-size:.68rem;color:var(--muted);border:1px solid var(--border);padding:1px 6px;border-radius:5px;margin-left:6px;}
+.evidence{font:10.5px ui-monospace,Menlo,Consolas,monospace;color:var(--muted);word-break:break-all;max-width:280px;display:block;}
 .empty{color:var(--muted);text-align:center;padding:34px;}
-.badge{font-size:.72rem;color:var(--muted);}
+.drawer{display:none;padding:14px 16px;background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;}
+.drawer.open{display:block;}
+.cfg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
+.cfg-field label{display:block;font-size:.7rem;color:var(--muted);margin-bottom:3px;}
+.cfg-field input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);color:var(--text);}
+.srcbox{margin-bottom:12px;}
+textarea{width:100%;min-height:90px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font:11.5px ui-monospace,Menlo,Consolas,monospace;}
 </style>
 </head>
 <body>
+<div class="topbar">
+  <h1>🛡️ sshdetect <span class="pill" id="statusPill">idle</span></h1>
+  <div class="spacer"></div>
+  <button onclick="document.getElementById('file').click()">Upload log</button>
+  <input type="file" id="file" accept=".log,.txt">
+  <button onclick="loadSample()">Load sample</button>
+  <button onclick="toggleDrawer()">⚙ Thresholds</button>
+  <button class="primary" id="runBtn" onclick="runDetection()">▶ Run</button>
+</div>
+
 <div class="wrap">
-  <h1>🛡️ sshdetect</h1>
-  <div class="sub">This GUI calls <code>/analyze</code>, which runs your actual <code>sshdetect.py</code> (<code>Detector</code> + <code>Config</code> + <code>parse_line</code>) on the server. No detection logic lives in this page.</div>
-
-  <div class="panel">
-    <h2>1 · Load a log</h2>
-    <div class="row">
-      <button class="primary" onclick="document.getElementById('file').click()">Upload auth.log</button>
-      <input type="file" id="file" accept=".log,.txt">
-      <button onclick="loadSample()">Load sample log (from sample/auth.log)</button>
-      <span class="badge" id="filename">No file loaded</span>
+  <div class="drawer" id="drawer">
+    <div class="srcbox">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:6px;">RAW LOG SOURCE</div>
+      <textarea id="pasteArea" placeholder="Paste syslog-style auth.log lines, or use Upload / Load sample above…"></textarea>
     </div>
-    <details style="margin-top:10px;">
-      <summary style="cursor:pointer;color:var(--muted);font-size:.85rem;">Or paste log text</summary>
-      <textarea id="pasteArea" placeholder="Paste syslog-style auth.log lines here…"></textarea>
-    </details>
+    <div id="cfgGrid" class="cfg-grid"></div>
   </div>
 
-  <div class="panel">
-    <h2>2 · Thresholds (passed straight to Config in sshdetect.py)</h2>
-    <div class="cfg-grid" id="cfgGrid"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Alert volume over time</h2>
+      <div class="bars" id="timeChart"><div class="empty" style="height:100%;display:flex;align-items:center;justify-content:center;width:100%;">No data yet</div></div>
+    </div>
+    <div class="card">
+      <h2>Severity breakdown</h2>
+      <div class="donutwrap" id="donut"><div class="empty">No data yet</div></div>
+    </div>
   </div>
 
-  <div class="row" style="margin-bottom:18px;">
-    <button class="primary" id="runBtn" onclick="runDetection()">▶ Run sshdetect.py</button>
-    <button id="dlBtn" onclick="downloadAlerts()" disabled>⭳ Download alerts.jsonl</button>
+  <div class="card" style="margin-bottom:16px;">
+    <h2>Top offending sources / entities</h2>
+    <div id="topList"><div class="empty">No data yet</div></div>
   </div>
 
-  <div class="panel">
-    <h2>3 · Results</h2>
-    <div id="stats" class="stats"></div>
-    <div class="tablewrap" style="margin-top:14px;">
+  <div class="card">
+    <h2>Alerts</h2>
+    <div class="controls">
+      <input class="search" id="search" placeholder="Search alerts (IP, user, message)…" oninput="renderTable()">
+      <div class="row" id="sevChips">
+        <button class="chip active" data-sev="all" onclick="toggleSev(this)">All</button>
+        <button class="chip" data-sev="critical" onclick="toggleSev(this)">Critical</button>
+        <button class="chip" data-sev="high" onclick="toggleSev(this)">High</button>
+        <button class="chip" data-sev="medium" onclick="toggleSev(this)">Medium</button>
+      </div>
+      <select id="ruleFilter" onchange="renderTable()"><option value="all">All rules</option></select>
+      <button onclick="downloadAlerts()" id="dlBtn" disabled>⭳ Export JSON</button>
+    </div>
+    <div class="tablewrap">
       <table>
-        <thead><tr><th>Time</th><th>Severity</th><th>Rule</th><th>Entity</th><th>Message</th><th>Evidence</th></tr></thead>
+        <thead><tr>
+          <th onclick="sortBy('ts')">Time</th><th onclick="sortBy('severity')">Severity</th>
+          <th onclick="sortBy('rule')">Rule</th><th onclick="sortBy('entity')">Entity</th>
+          <th>Message</th><th>Evidence</th>
+        </tr></thead>
         <tbody id="alertsBody"><tr><td colspan="6" class="empty">Load a log and click Run.</td></tr></tbody>
       </table>
     </div>
@@ -81,13 +127,15 @@ th{color:var(--muted);font-size:.72rem;text-transform:uppercase;}
 </div>
 
 <script>
-// CFG_DEFS map to the real Config field names in sshdetect.py.
+const MITRE = {brute_force:"T1110.001", success_after_failures:"T1078", user_enumeration:"T1110.003",
+  off_hours_login:"T1078", suspicious_command:"T1105"};
+const SEV_COLOR = {critical:"var(--crit)", high:"var(--high)", medium:"var(--med)", low:"var(--low)"};
+
 const CFG_DEFS = [
   ["bf_threshold","Brute force: failures",5], ["bf_window","Brute force: window (s)",60],
   ["sf_threshold","Compromise: failures",5], ["sf_lookback","Compromise: lookback (s)",300],
-  ["enum_threshold","Enumeration: usernames",4], ["enum_window","Enumeration: window (s)",120],
-  ["hours_start","Business hours start",7], ["hours_end","Business hours end",20],
-  ["cooldown","Alert cooldown (s)",300],
+  ["enum_threshold","Enum: usernames",4], ["enum_window","Enum: window (s)",120],
+  ["hours_start","Hours start",7], ["hours_end","Hours end",20], ["cooldown","Cooldown (s)",300],
 ];
 const grid = document.getElementById('cfgGrid');
 CFG_DEFS.forEach(([id,label,def])=>{
@@ -95,70 +143,130 @@ CFG_DEFS.forEach(([id,label,def])=>{
   d.innerHTML=`<label for="${id}">${label}</label><input type="number" id="${id}" value="${def}">`;
   grid.appendChild(d);
 });
-grid.insertAdjacentHTML('beforeend',
-  `<div class="cfg-field"><label for="offhours">Off-hours allowlist (comma-sep)</label><input type="text" id="offhours" placeholder="backup,cron"></div>`);
+grid.insertAdjacentHTML('beforeend', `<div class="cfg-field"><label for="offhours">Off-hours allowlist</label><input type="text" id="offhours" placeholder="backup,cron"></div>`);
+
+function toggleDrawer(){ document.getElementById('drawer').classList.toggle('open'); }
 
 document.getElementById('file').addEventListener('change', e=>{
   const f = e.target.files[0]; if(!f) return;
   const reader = new FileReader();
-  reader.onload = ()=>{ document.getElementById('pasteArea').value = reader.result; document.getElementById('filename').textContent = f.name; };
+  reader.onload = ()=>{ document.getElementById('pasteArea').value = reader.result; document.getElementById('drawer').classList.add('open'); };
   reader.readAsText(f);
 });
 
 async function loadSample(){
   const res = await fetch('/sample');
   document.getElementById('pasteArea').value = await res.text();
-  document.getElementById('filename').textContent = 'sample/auth.log (server)';
   document.getElementById('offhours').value = 'backup';
+  document.getElementById('drawer').classList.add('open');
 }
 
-let currentAlerts = [];
-
-function sevBadge(s){ return `<span class="sev sev-${s}">${s}</span>`; }
+let allAlerts = [], activeSev = 'all', sortKey = 'ts', sortDir = 1;
 
 async function runDetection(){
   const log = document.getElementById('pasteArea').value;
-  if(!log.trim()){ alert('Load or paste a log first.'); return; }
-  const cfg = {};
-  CFG_DEFS.forEach(([id])=>cfg[id]=Number(document.getElementById(id).value));
-  const runBtn = document.getElementById('runBtn');
-  runBtn.disabled = true; runBtn.textContent = 'Running…';
+  if(!log.trim()){ alert('Load or paste a log first (click ⚙ Thresholds).'); return; }
+  const cfg = {}; CFG_DEFS.forEach(([id])=>cfg[id]=Number(document.getElementById(id).value));
+  const runBtn = document.getElementById('runBtn'), pill = document.getElementById('statusPill');
+  runBtn.disabled = true; pill.textContent = 'running…';
   try{
-    const res = await fetch('/analyze', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({log, cfg, offhours_ignore_users: document.getElementById('offhours').value})
-    });
+    const res = await fetch('/analyze', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({log, cfg, offhours_ignore_users: document.getElementById('offhours').value})});
     if(!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    currentAlerts = data.alerts;
-    render(data.alerts, data.event_count);
-    document.getElementById('dlBtn').disabled = data.alerts.length===0;
-  } catch(err){
-    alert('Server error — is app.py running? ' + err.message);
-  } finally {
-    runBtn.disabled = false; runBtn.textContent = '▶ Run sshdetect.py';
-  }
+    allAlerts = data.alerts.map(a=>({...a, tsDate:new Date(a.ts)}));
+    pill.textContent = `${data.event_count} events`;
+    buildRuleFilter(); renderKPIs(data.event_count); renderCharts(); renderTable();
+    document.getElementById('dlBtn').disabled = allAlerts.length===0;
+    document.getElementById('drawer').classList.remove('open');
+  } catch(err){ alert('Server error — is app.py running? ' + err.message); }
+  finally{ runBtn.disabled = false; }
 }
 
-function render(alerts, eventCount){
-  const counts = {critical:0,high:0,medium:0,low:0};
-  alerts.forEach(a=>counts[a.severity]=(counts[a.severity]||0)+1);
-  const ips = new Set(alerts.map(a=>a.entity));
-  document.getElementById('stats').innerHTML = `
-    <div class="stat"><div class="n">${eventCount}</div><div class="l">events parsed</div></div>
-    <div class="stat"><div class="n">${alerts.length}</div><div class="l">alerts</div></div>
-    <div class="stat"><div class="n">${counts.critical||0}</div><div class="l">critical</div></div>
-    <div class="stat"><div class="n">${counts.high||0}</div><div class="l">high</div></div>
-    <div class="stat"><div class="n">${counts.medium||0}</div><div class="l">medium</div></div>
-    <div class="stat"><div class="n">${ips.size}</div><div class="l">entities</div></div>`;
+function buildRuleFilter(){
+  const sel = document.getElementById('ruleFilter');
+  const rules = [...new Set(allAlerts.map(a=>a.rule))].sort();
+  sel.innerHTML = '<option value="all">All rules</option>' + rules.map(r=>`<option value="${r}">${r}</option>`).join('');
+}
+
+function renderKPIs(eventCount){
+  const c = {critical:0,high:0,medium:0,low:0};
+  allAlerts.forEach(a=>c[a.severity]=(c[a.severity]||0)+1);
+  const entities = new Set(allAlerts.map(a=>a.entity));
+  const rows = [["kpi",eventCount,"events"],["kpi",allAlerts.length,"alerts"],
+    ["kpi crit",c.critical||0,"critical"],["kpi high",c.high||0,"high"],
+    ["kpi med",c.medium||0,"medium"],["kpi",entities.size,"entities"]];
+  document.getElementById('kpis').innerHTML = rows.map(([cls,n,l])=>`<div class="${cls}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+}
+
+function renderCharts(){
+  // time buckets (5-min)
+  const tc = document.getElementById('timeChart');
+  if(allAlerts.length===0){ tc.innerHTML='<div class="empty" style="width:100%;">No alerts</div>'; }
+  else{
+    const buckets = new Map();
+    allAlerts.forEach(a=>{ const b = Math.floor(a.tsDate.getTime()/300000)*300000; buckets.set(b,(buckets.get(b)||0)+1); });
+    const keys = [...buckets.keys()].sort((a,b)=>a-b);
+    const max = Math.max(...buckets.values());
+    tc.innerHTML = keys.map(k=>{
+      const h = Math.max(4, Math.round(buckets.get(k)/max*100));
+      const t = new Date(k);
+      const label = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')} — ${buckets.get(k)} alert(s)`;
+      return `<div class="bar" style="height:${h}%" data-tip="${label}"></div>`;
+    }).join('');
+  }
+  // severity donut (as stacked bar ring via conic-gradient)
+  const d = document.getElementById('donut');
+  if(allAlerts.length===0){ d.innerHTML='<div class="empty">No alerts</div>'; return; }
+  const c = {critical:0,high:0,medium:0,low:0};
+  allAlerts.forEach(a=>c[a.severity]=(c[a.severity]||0)+1);
+  let acc=0, stops=[];
+  Object.entries(c).forEach(([k,v])=>{ if(!v) return; const pct=v/allAlerts.length*100; stops.push(`${SEV_COLOR[k]} ${acc}% ${acc+pct}%`); acc+=pct; });
+  d.innerHTML = `<div style="width:96px;height:96px;border-radius:50%;background:conic-gradient(${stops.join(',')});
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--panel);display:flex;align-items:center;justify-content:center;font-weight:800;">${allAlerts.length}</div></div>
+    <div class="legend">${Object.entries(c).filter(([,v])=>v).map(([k,v])=>`<div><span class="dot" style="background:${SEV_COLOR[k]}"></span>${k} — ${v}</div>`).join('')}</div>`;
+
+  // top entities
+  const counts = new Map();
+  allAlerts.forEach(a=>counts.set(a.entity,(counts.get(a.entity)||0)+1));
+  const top = [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('topList').innerHTML = top.map(([e,n])=>`<div class="toprow"><span><code>${e}</code></span><span class="cnt">${n} alert(s)</span></div>`).join('') || '<div class="empty">No alerts</div>';
+}
+
+function toggleSev(btn){
+  document.querySelectorAll('.chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); activeSev = btn.dataset.sev; renderTable();
+}
+
+function sortBy(key){ sortDir = (sortKey===key) ? -sortDir : 1; sortKey = key; renderTable(); }
+
+function renderTable(){
+  const q = document.getElementById('search').value.toLowerCase();
+  const ruleF = document.getElementById('ruleFilter')?.value || 'all';
+  let rows = allAlerts.filter(a=>
+    (activeSev==='all' || a.severity===activeSev) &&
+    (ruleF==='all' || a.rule===ruleF) &&
+    (!q || (a.entity+a.message+a.rule+a.evidence).toLowerCase().includes(q)));
+  rows.sort((a,b)=>{
+    let x=a[sortKey], y=b[sortKey];
+    if(sortKey==='ts'){ x=a.tsDate; y=b.tsDate; }
+    return x<y ? -sortDir : x>y ? sortDir : 0;
+  });
   const body = document.getElementById('alertsBody');
-  body.innerHTML = alerts.length===0
-    ? `<tr><td colspan="6" class="empty">No alerts triggered.</td></tr>`
-    : alerts.map(a=>`<tr><td>${a.ts}</td><td>${sevBadge(a.severity)}</td><td>${a.rule}</td><td>${a.entity}</td><td>${a.message}</td><td class="evidence">${a.evidence.replace(/</g,'&lt;')}</td></tr>`).join('');
+  body.innerHTML = rows.length===0 ? `<tr><td colspan="6" class="empty">No matching alerts.</td></tr>` :
+    rows.map(a=>`<tr>
+      <td>${a.ts.replace('T',' ').slice(0,19)}</td>
+      <td><span class="sev sev-${a.severity}">${a.severity}</span></td>
+      <td>${a.rule}<span class="mitre">${MITRE[a.rule]||''}</span></td>
+      <td><code>${a.entity}</code></td>
+      <td>${a.message}</td>
+      <td><span class="evidence">${a.evidence.replace(/</g,'&lt;')}</span></td>
+    </tr>`).join('');
 }
 
 function downloadAlerts(){
-  const blob = new Blob([currentAlerts.map(a=>JSON.stringify(a)).join('\n')], {type:'application/json'});
+  const blob = new Blob([allAlerts.map(({tsDate,...a})=>JSON.stringify(a)).join('\n')], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href=url; a.download='alerts.jsonl'; a.click();
   URL.revokeObjectURL(url);
